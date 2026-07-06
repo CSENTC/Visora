@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 @theme {
     --color-background: #fdfbf7;
@@ -10,6 +11,7 @@
     --color-accent: #8b5cf6;
     --font-serif: "Instrument Serif", serif;
     --font-sans: Inter, sans-serif;
+    --font-geist: Geist, sans-serif;
     --shadow-neobrutalism: 4px 4px 0px 0px rgba(0, 0, 0, 1);
 }
 
@@ -422,7 +424,7 @@
             }
 
             h1 {
-                @apply text-6xl md:text-8xl font-serif leading-[0.95] text-black mb-8 max-w-5xl mx-auto;
+                @apply text-6xl md:text-8xl font-geist leading-[0.95] text-black mb-8 max-w-5xl mx-auto;
             }
 
             .subtitle {
