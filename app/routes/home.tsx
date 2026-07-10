@@ -35,13 +35,12 @@ export default function Home() {
       return false;
     }
 
-    const persistedItem = saved ?? newItem;
-    setProjects((prev) => [persistedItem, ...prev]);
+    setProjects((prev) => [saved, ...prev]);
 
     navigate(`/visualizer/${newId}`, {
       state: {
-        initialImage: persistedItem.sourceImage,
-        initialRendered: persistedItem.renderedImage || null,
+        initialImage: saved.sourceImage,
+        initialRendered: saved.renderedImage || null,
         name
       }
     });
