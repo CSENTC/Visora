@@ -22,7 +22,7 @@ export default function PricingPage() {
             Visora uses Puter for image hosting and compute orchestration, so the pricing model follows a user-pays approach: you only spend when you need more rendering capacity.
           </p>
           <div className="page-actions">
-            <Link to="/" className="btn btn--primary btn--lg primary-action pointer">
+            <Link to="/" className="btn btn--primary btn--lg primary-action">
               Start with the free tier <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
             <Link to="/enterprise" className="text-link">Talk to enterprise</Link>
