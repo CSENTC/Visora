@@ -1,4 +1,10 @@
-export const PUTER_WORKER_URL = import.meta.env.VITE_PUTER_WORKER_URL || "";
+const rawPuterWorkerUrl = import.meta.env.VITE_PUTER_WORKER_URL || "";
+export const PUTER_WORKER_URL = rawPuterWorkerUrl.replace(/\/+$/, "");
+
+export const buildPuterWorkerUrl = (path: string) => {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    return `${PUTER_WORKER_URL}${normalizedPath}`;
+};
 
 // Storage Paths
 export const STORAGE_PATHS = {
