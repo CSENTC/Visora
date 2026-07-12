@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { getCurrentUser, 
           signOut as puterSignOut,
           signIn as puterSignIn } from "../lib/puter.action";
+import Footer from "../components/Footer";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -85,13 +86,16 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground relative z-10">
-      <Outlet 
-        context={{
-          ...authState, refreshAuth, signIn, signOut
-        }}
-      />
-    </main>
+    <div className="app-shell">
+      <main className="min-h-screen bg-background text-foreground relative z-10">
+        <Outlet 
+          context={{
+            ...authState, refreshAuth, signIn, signOut
+          }}
+        />
+      </main>
+      <Footer />
+    </div>
 );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router"
 import { generate3DView } from "../../lib/ai.action";
-import { Box, Download, RefreshCcw, Share2, X } from "lucide-react";
+import { Box, Check, Copy, Download, RefreshCcw, Share2, X } from "lucide-react";
 import Button from "../../components/ui/Button";
 import { createProject, getProjectById } from "../../lib/puter.action";
 import { ReactCompareSlider, ReactCompareSliderImage } from "react-compare-slider";
@@ -17,8 +17,85 @@ const VisualizerId = () => {
   const [isProjectLoading, setIsProjectLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isShareSaving, setIsShareSaving] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleBack = () => navigate('/');
+
+  const persistProjectVisibility = async (visibility: "private" | "public") => {
+    if (!project?.id) return null;
+
+    const nextItem: DesignItem = {
+      ...project,
+      renderedImage: currentImage || project.renderedImage || null,
+      renderedPath: project.renderedPath || null,
+      timestamp: project.timestamp || Date.now(),
+      ownerId: project.ownerId ?? userId ?? null,
+      sharedBy: visibility === "public" ? (userId ?? project.sharedBy ?? null) : (project.sharedBy ?? null),
+      sharedAt: visibility === "public" ? new Date().toISOString() : (project.sharedAt ?? null),
+      isPublic: visibility === "public",
+    };
+
+    const saved = await createProject({ item: nextItem, visibility });
+
+    if (saved) {
+      setProject(saved);
+      setCurrentImage(saved.renderedImage || currentImage || project.renderedImage || null);
+
+      if (visibility === "public") {
+        const publicUrl = `${window.location.origin}/visualizer/${saved.id}`;
+        setShareLink(publicUrl);
+      }
+    }
+
+    return saved;
+  };
+
+  const handleShare = async () => {
+    if (!project?.id || !currentImage) return;
+
+    try {
+      setIsShareSaving(true);
+      setCopied(false);
+      const saved = await persistProjectVisibility("public");
+
+      if (saved) {
+        setIsShareModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Share failed:", error);
+    } finally {
+      setIsShareSaving(false);
+    }
+  };
+
+  const handleShareClose = async () => {
+    try {
+      setIsShareSaving(true);
+      await persistProjectVisibility("private");
+    } catch (error) {
+      console.error("Failed to restore visibility:", error);
+    } finally {
+      setIsShareSaving(false);
+      setCopied(false);
+      setIsShareModalOpen(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const urlToCopy = shareLink || (typeof window !== "undefined" ? `${window.location.origin}/visualizer/${id}` : null);
+
+    if (!urlToCopy) return;
+
+    try {
+      await navigator.clipboard.writeText(urlToCopy);
+      setCopied(true);
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+    }
+  };
 
   const handleExport = () => {
     if (!currentImage) return;
@@ -111,6 +188,8 @@ const VisualizerId = () => {
     void runGeneration(project);
   }, [project, isProjectLoading]);
 
+  const compareAfterImage = currentImage ?? project?.renderedImage ?? project?.sourceImage;
+
   return (
     <div className="visualizer">
       <nav className="topbar">
@@ -145,11 +224,12 @@ const VisualizerId = () => {
               </Button>
               <Button
                 size="sm"
-                onClick={() => { }}
+                onClick={handleShare}
                 className="share"
+                disabled={!currentImage || isShareSaving}
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Share
+                {isShareSaving ? "Sharing..." : "Share"}
               </Button>
             </div>
           </div>
@@ -188,7 +268,7 @@ const VisualizerId = () => {
               </div>
             </div>
             <div className="compare-stage">
-              {project?.sourceImage && currentImage ? (
+              {project?.sourceImage && compareAfterImage ? (
                 <ReactCompareSlider
                   defaultValue={50}
                   style={{width: '100%', height: 'auto'}}
@@ -196,7 +276,7 @@ const VisualizerId = () => {
                     <ReactCompareSliderImage src={project?.sourceImage} alt="before" className="compare-img" />
                   }
                   itemTwo={
-                    <ReactCompareSliderImage src={currentImage || project?.renderedImage} alt="after" className="compare-img" />
+                    <ReactCompareSliderImage src={compareAfterImage} alt="after" className="compare-img" />
                   }
                  />
               ) : (
@@ -209,6 +289,60 @@ const VisualizerId = () => {
             </div>
         </div>
       </section>
+
+      {isShareModalOpen && (
+        <div className="share-modal-backdrop" onClick={handleShareClose}>
+          <div className="share-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="share-modal-header">
+              <div>
+                <p className="share-badge">Shared preview</p>
+                <h3>Ready to share this visualization</h3>
+              </div>
+              <button type="button" className="share-modal-close" onClick={handleShareClose} aria-label="Close share dialog">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="share-modal-body">
+              {currentImage ? (
+                <div className="share-modal-preview">
+                  <img src={currentImage} alt="Shared render" />
+                </div>
+              ) : null}
+              <div className="share-modal-info">
+                <div className="share-meta-row">
+                  <span className="share-meta-label">Shared by</span>
+                  <span className="share-meta-value">{project?.sharedBy ?? userId ?? "You"}</span>
+                </div>
+                <div className="share-meta-row">
+                  <span className="share-meta-label">Published</span>
+                  <span className="share-meta-value">
+                    {project?.sharedAt ? new Date(project.sharedAt).toLocaleString() : "Just now"}
+                  </span>
+                </div>
+                <div className="share-link-block">
+                  <span className="share-meta-label">Project link</span>
+                  <div className="share-link-row">
+                    <a href={shareLink || `${window.location.origin}/visualizer/${id}`} target="_blank" rel="noreferrer">
+                      {shareLink || `${window.location.origin}/visualizer/${id}`}
+                    </a>
+                    <button type="button" className="share-copy-btn" onClick={handleCopyLink}>
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="share-link-block">
+                  <span className="share-meta-label">Rendered image</span>
+                  <div className="share-link-row">
+                    <a href={currentImage || project?.renderedImage || "#"} target="_blank" rel="noreferrer">
+                      {currentImage || project?.renderedImage || "Render is still being prepared"}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
